@@ -40,32 +40,41 @@ module.exports = function (options) {
       return;
     }
 
-    if (hasBounds() && state.displayBounds) {
-      // Check if the display where the window was last open is still available
-      const displayBounds = screen.getDisplayMatching(state).bounds;
-      const sameBounds = deepEqual(state.displayBounds, displayBounds, {strict: true});
-      if (!sameBounds) {
-        if (displayBounds.width < state.displayBounds.width) {
-          if (state.x > displayBounds.width) {
-            state.x = 0;
-          }
+    if (hasBounds()) {
+      const displays = screen.getAllDisplays();
 
-          if (state.width > displayBounds.width) {
-            state.width = displayBounds.width;
-          }
+      let positionIsValid = false;
+
+      displays.forEach((display) => {
+        const bounds = display.bounds;
+
+        if (
+          // Test if x is within the bounds of the current display
+          (state.x >= bounds.x && state.x <= bounds.x + bounds.width)
+          &&
+          // Test if y is within the bounds of the current display
+          (state.y >= bounds.y && state.y <= bounds.y + bounds.height)
+        ) {
+          positionIsValid = true;
         }
+      });
 
-        if (displayBounds.height < state.displayBounds.height) {
-          if (state.y > displayBounds.height) {
-            state.y = 0;
-          }
+      if (!positionIsValid) {
+        resetStateToDefault();
 
-          if (state.height > displayBounds.height) {
-            state.height = displayBounds.height;
-          }
-        }
+        return;
       }
     }
+  }
+
+  function resetStateToDefault() {
+    // Set position to null, because electron will automatically handle the positioning then, by putting the window in the center of the screen
+    state.x = null;
+    state.y = null;
+
+    // Apply default width and height, specified by the developer
+    state.width = config.defaultWidth;
+    state.height = config.defaultHeight;
   }
 
   function updateState(win) {
